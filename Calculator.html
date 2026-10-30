@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Calculator</title>
+<style>
+:root{--bg:#e9ecef;--panel:#f7f8f9;--ink:#1d2329;--key:#ffffff;--key-ink:#1d2329;--op:#d7e3f4;--op-ink:#12335f;--eq:#1f5fbf;--eq-ink:#fff;--fn:#e3e6ea;--muted:#66727e;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#14181c;--panel:#1b2025;--ink:#eef1f4;--key:#262d34;--key-ink:#eef1f4;--op:#2b3b52;--op-ink:#cfe0fa;--eq:#4b8df0;--eq-ink:#08162b;--fn:#323a42;--muted:#9aa6b2}}
+:root[data-theme="dark"]{--bg:#14181c;--panel:#1b2025;--ink:#eef1f4;--key:#262d34;--key-ink:#eef1f4;--op:#2b3b52;--op-ink:#cfe0fa;--eq:#4b8df0;--eq-ink:#08162b;--fn:#323a42;--muted:#9aa6b2}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--ink);font-family:"DM Sans",system-ui,-apple-system,"Segoe UI",sans-serif;display:flex;align-items:center;justify-content:center}
+.calc{width:min(100%,380px);height:100%;max-height:640px;background:var(--panel);display:flex;flex-direction:column;padding:16px;gap:12px;box-sizing:border-box}
+.screen{flex:1;min-height:120px;display:flex;flex-direction:column;justify-content:flex-end;align-items:flex-end;padding:8px 8px 4px;overflow:hidden}
+.expr{color:var(--muted);font-size:1.1rem;min-height:1.4em;word-break:break-all;text-align:right}
+.val{font-size:3.2rem;font-weight:500;letter-spacing:-.02em;font-variant-numeric:tabular-nums;white-space:nowrap}
+.keys{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+button{font:inherit;font-size:1.4rem;border:0;border-radius:18px;height:64px;background:var(--key);color:var(--key-ink);cursor:pointer;touch-action:manipulation}
+button:active{transform:scale(.96)}
+button:focus-visible{outline:3px solid var(--eq);outline-offset:2px}
+.fn{background:var(--fn)}.op{background:var(--op);color:var(--op-ink)}.eq{background:var(--eq);color:var(--eq-ink)}
+</style>
+</head>
+<body>
+<main class="calc">
+  <div class="screen" aria-live="polite"><div class="expr" id="expr"></div><div class="val" id="val">0</div></div>
+  <div class="keys" id="keys"></div>
+</main>
+<script>
+const layout=[["AC","fn"],["±","fn"],["%","fn"],["÷","op"],["7"],["8"],["9"],["×","op"],["4"],["5"],["6"],["−","op"],["1"],["2"],["3"],["+","op"],["0"],["."],["⌫","fn"],["=","eq"]];
+const keys=document.getElementById("keys"),val=document.getElementById("val"),expr=document.getElementById("expr");
+let cur="0",prev=null,op=null,fresh=false;
+layout.forEach(([k,c])=>{const b=document.createElement("button");b.textContent=k;if(c)b.className=c;b.onclick=()=>press(k);keys.appendChild(b)});
+const fmt=s=>{if(s==="Error")return s;if(s.includes("e"))return s;const[n,d]=s.split(".");const i=n.replace(/\B(?=(\d{3})+(?!\d))/g,",");return d!==undefined?i+"."+d:i};
+function calc(a,b,o){a=parseFloat(a);b=parseFloat(b);let r=o==="+"?a+b:o==="−"?a-b:o==="×"?a*b:b===0?NaN:a/b;
+return isFinite(r)?String(parseFloat(r.toPrecision(12))):"Error"}
+function draw(){val.textContent=fmt(cur);val.style.fontSize=cur.length>12?"1.9rem":cur.length>8?"2.4rem":"3.2rem";
+expr.textContent=prev!==null&&op?fmt(prev)+" "+op:""}
+function press(k){
+if(cur==="Error"&&k!=="AC")cur="0";
+if(/\d/.test(k)){if(fresh){cur="0";fresh=false}if(cur.replace(/[-.]/g,"").length>=15)return;cur=cur==="0"?k:cur+k}
+else if(k==="."){if(fresh){cur="0";fresh=false}if(!cur.includes("."))cur+="."}
+else if(k==="AC"){cur="0";prev=null;op=null;fresh=false}
+else if(k==="⌫"){cur=fresh?cur:(cur.length>1&&!(cur.length===2&&cur[0]==="-")?cur.slice(0,-1):"0")}
+else if(k==="±"){if(cur!=="0")cur=cur[0]==="-"?cur.slice(1):"-"+cur}
+else if(k==="%"){cur=String(parseFloat((parseFloat(cur)/100).toPrecision(12)))}
+else if(k==="="){if(op&&prev!==null){cur=calc(prev,cur,op);prev=null;op=null;fresh=true}}
+else{if(op&&prev!==null&&!fresh){cur=calc(prev,cur,op)}prev=cur;op=k;fresh=true}
+draw()}
+document.addEventListener("keydown",e=>{const m={"*":"×","/":"÷","-":"−","Enter":"=","Backspace":"⌫","Escape":"AC"};const k=m[e.key]||e.key;
+if(/^[0-9.+=%]$/.test(k)||["×","÷","−","⌫","AC"].includes(k)){e.preventDefault();press(k)}});
+draw();
+</script>
+</body>
+</html>
